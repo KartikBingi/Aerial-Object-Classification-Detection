@@ -11,7 +11,8 @@ st.write("Upload an aerial image to classify and detect objects.")
 
 # Load the model you just trained
 # Using the path from your successful run
-model_path = r'runs\detect\aerial_model_v13\weights\best.pt'
+# Updated path for Streamlit Cloud
+model_path = 'weights/best.pt' 
 model = YOLO(model_path)
 
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
