@@ -2,46 +2,99 @@ import streamlit as st
 from ultralytics import YOLO
 import os
 from PIL import Image
+import time
 
-st.set_page_config(page_title="Aerial Detection", layout="wide")
-st.title("🚁 Aerial Bird & Drone Detection")
+# --- Page Configuration ---
+st.set_page_config(
+    page_title="Aerial Sentinel AI",
+    page_icon="🚁",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Logic to find the model weights
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Check two possible locations
-path_option1 = os.path.join(current_dir, 'weights', 'best.pt')
-path_option2 = os.path.join(current_dir, 'best.pt')
+# --- Custom CSS for Styling ---
+st.markdown("""
+    <style>
+    .main { background-color: #0e1117; }
+    .stMetric { background-color: #1e2130; padding: 15px; border-radius: 10px; border: 1px solid #3e4255; }
+    [data-testid="stSidebar"] { background-color: #11141c; }
+    </style>
+    """, unsafe_allow_html=True)
 
-model_path = path_option1 if os.path.exists(path_option1) else path_option2
+# --- Sidebar Configuration ---
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/2563/2563412.png", width=80)
+    st.title("Settings")
+    conf_threshold = st.slider("Confidence Threshold", 0.0, 1.0, 0.25)
+    st.info("Adjust the threshold to filter out low-confidence detections.")
+    st.divider()
+    st.markdown("### Internship Project\n**Labmentix AI Lab**")
 
-# Initialize the model
-@st.cache_resource # This keeps the model in memory so it doesn't reload every time
-def load_model(path):
-    return YOLO(path)
+# --- Model Loading Logic ---
+@st.cache_resource
+def load_model():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    paths = [os.path.join(current_dir, 'weights', 'best.pt'), os.path.join(current_dir, 'best.pt')]
+    for path in paths:
+        if os.path.exists(path):
+            return YOLO(path)
+    return None
 
-if os.path.exists(model_path):
-    try:
-        model = load_model(model_path)
-        st.sidebar.success("✅ Model Loaded")
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
+model = load_model()
+
+# --- Main Dashboard Header ---
+st.title("🚁 Aerial Sentinel: Bird & Drone Detection")
+st.markdown("### Intelligent Computer Vision for Airspace Monitoring")
+st.divider()
+
+if model is None:
+    st.error("⚠️ AI Model file (best.pt) not found. Please verify your repository structure.")
 else:
-    st.error(f"Could not find best.pt. Please check your GitHub folder structure.")
-
-# Image Uploader
-uploaded_file = st.file_uploader("Upload an aerial image...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None and 'model' in locals():
-    image = Image.open(uploaded_file)
+    # --- UI Layout: Upload & Info ---
+    col_u1, col_u2 = st.columns([2, 1])
     
-    # Run Prediction
-    with st.spinner('Analyzing image...'):
-        results = model(image, conf=0.25) # Run detection
-        res_plotted = results[0].plot() # Plot results
+    with col_u1:
+        uploaded_file = st.file_uploader("Upload an aerial snapshot...", type=["jpg", "jpeg", "png"])
+    
+    with col_u2:
+        st.markdown("#### System Status")
+        if uploaded_file:
+            st.success("🟢 Ready for Inference")
+        else:
+            st.warning("⚪ Waiting for Input")
+
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
         
-    # Display Results
-    col1, col2 = st.columns(2)
-    with col1:
-        st.image(image, caption="Original Image", use_container_width=True)
-    with col2:
-        st.image(res_plotted, caption="Detected Objects", use_container_width=True)
+        # Inference Stage
+        start_time = time.time()
+        results = model(image, conf=conf_threshold)
+        end_time = time.time()
+        
+        inference_time = (end_time - start_time) * 1000 # Convert to ms
+        num_detections = len(results[0].boxes)
+
+        # --- Dashboard Metrics ---
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Inference Time", f"{inference_time:.1f} ms")
+        with m2:
+            st.metric("Objects Detected", num_detections)
+        with m3:
+            st.metric("Model Precision", "YOLOv8s")
+
+        # --- Visual Results ---
+        res_plotted = results[0].plot()
+        
+        st.divider()
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("##### Original Image")
+            st.image(image, use_container_width=True)
+        with c2:
+            st.markdown("##### AI Visual Output")
+            st.image(res_plotted, use_container_width=True)
+            
+        # --- Detection Log ---
+        with st.expander("View Detection Meta-Data"):
+            st.write(results[0].boxes.data)
