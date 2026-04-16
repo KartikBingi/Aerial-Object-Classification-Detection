@@ -1,4 +1,4 @@
-<img width="901" height="357" alt="image" src="https://github.com/user-attachments/assets/b3692818-d4ca-44e9-bdc1-ffcf572864c0" /># Aerial-Object-Classification-Detection
+Aerial-Object-Classification-Detection
 Developed during my Data Science Internship at Labmentix, this project implements a real-time computer vision system capable of distinguishing between Birds and Drones in aerial footage. The system is designed for security surveillance and wildlife monitoring, utilizing the state-of-the-art YOLOv8 architecture.
 
 Project Overview
